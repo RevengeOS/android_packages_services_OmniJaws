@@ -62,13 +62,7 @@ import java.util.Date;
 public class WeatherAppWidgetProvider extends AppWidgetProvider {
     private static final String TAG = "WeatherAppWidgetProvider";
     private static final boolean LOGGING = false;
-    private static final String REFRESH_BROADCAST = "org.omnirom.omnijaws.widget.WEATHER_REFRESH";
     private static final String WEATHER_UPDATE = "org.omnirom.omnijaws.WEATHER_UPDATE";
-    private static final String WEATHER_ERROR = "org.omnirom.omnijaws.WEATHER_ERROR";
-    private static final String EXTRA_ERROR = "error";
-    private static final int EXTRA_ERROR_NETWORK = 0;
-    private static final int EXTRA_ERROR_LOCATION = 1;
-    private static final int EXTRA_ERROR_DISABLED = 2;
 
     @Override
     public void onEnabled(Context context) {
@@ -119,19 +113,6 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
                 || Intent.ACTION_LOCALE_CHANGED.equals(action)) {
             updateAllWeather(context);
         }
-        if (action.equals(REFRESH_BROADCAST)) {
-            showUpdateProgress(context);
-            OmniJawsClient weatherClient = new OmniJawsClient(context);
-            weatherClient.updateWeather();
-        }
-        if (action.equals(WEATHER_ERROR)) {
-            int errorReason = intent.getIntExtra(EXTRA_ERROR, 0);
-            if (errorReason == EXTRA_ERROR_DISABLED) {
-                showErrorState(context, errorReason);
-            } else {
-                updateAllWeather(context);
-            }
-        }
         super.onReceive(context, intent);
     }
 
@@ -171,34 +152,6 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    public static void showUpdateProgress(Context context) {
-        if (LOGGING) {
-            Log.i(TAG, "showUpdateProgress");
-        }
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        if (appWidgetManager != null) {
-            ComponentName componentName = new ComponentName(context, WeatherAppWidgetProvider.class);
-            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
-            for (int appWidgetId : appWidgetIds) {
-                showProgress(context, appWidgetManager, appWidgetId);
-            }
-        }
-    }
-
-    public static void showErrorState(Context context, int errorReason) {
-        if (LOGGING) {
-            Log.i(TAG, "showErrorState " + errorReason);
-        }
-        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-        if (appWidgetManager != null) {
-            ComponentName componentName = new ComponentName(context, WeatherAppWidgetProvider.class);
-            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
-            for (int appWidgetId : appWidgetIds) {
-                showError(context, appWidgetManager, appWidgetId, errorReason);
-            }
-        }
-    }
-
     private static void updateWeather(
             Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
 
@@ -212,6 +165,9 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         if (!TextUtils.isEmpty(iconPack)) {
             weatherClient.loadIconPackage(iconPack);
         }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean calenderEvents = prefs.getBoolean(WeatherAppWidgetConfigure.KEY_CALENDER_EVENTS + "_" + appWidgetId, true);
 
         RemoteViews widget = new RemoteViews(context.getPackageName(), R.layout.weather_appwidget);
 
@@ -247,47 +203,26 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
             currentWidth = newOptions.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, minWidth);
         }
 
+        WeatherAppWidgetEvents events = new WeatherAppWidgetEvents(context);
+
         Drawable d = weatherClient.getWeatherConditionImage(weatherData.conditionCode);
         BitmapDrawable bd = overlay(context.getResources(), d);
 
-        widget.setImageViewBitmap(R.id.current_image, bd.getBitmap());
-        widget.setTextViewText(R.id.current_text, weatherData.temp + weatherData.tempUnits);
+        if (events.showEvent() && calenderEvents) {
+            widget.setViewVisibility(R.id.event_line, View.VISIBLE);
+            widget.setViewVisibility(R.id.condition_line, View.GONE);
+            widget.setTextViewText(R.id.event_text, events.formatedEvent());
+            widget.setTextViewText(R.id.event_duration, events.EventDuration());
+            widget.setImageViewBitmap(R.id.event_current_image, bd.getBitmap());
+            widget.setTextViewText(R.id.event_current_text, weatherData.temp + weatherData.tempUnits);
+        } else {
+            widget.setViewVisibility(R.id.event_line, View.GONE);
+            widget.setViewVisibility(R.id.condition_line, View.VISIBLE);
+            widget.setImageViewBitmap(R.id.current_image, bd.getBitmap());
+            widget.setTextViewText(R.id.current_text, weatherData.temp + weatherData.tempUnits);
+        }
 
         appWidgetManager.updateAppWidget(appWidgetId, widget);
-    }
-
-
-    private static void showProgress(
-            Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-
-        if (LOGGING) {
-            Log.i(TAG, "showProgress " + appWidgetId);
-        }
-
-        RemoteViews widget = new RemoteViews(context.getPackageName(), R.layout.weather_appwidget);
-        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, widget);
-    }
-
-    private static void showError(
-            Context context, AppWidgetManager appWidgetManager, int appWidgetId, int errorReason) {
-
-        if (LOGGING) {
-            Log.i(TAG, "showError " + appWidgetId + " errorReason = " + errorReason);
-        }
-
-        RemoteViews widget = new RemoteViews(context.getPackageName(), R.layout.weather_appwidget);
-        initWidget(widget);
-
-        if (errorReason == EXTRA_ERROR_DISABLED) {
-
-        } else {
-            // should never happen
-        }
-
-        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, widget);
-    }
-
-    private static void initWidget(RemoteViews widget) {
     }
 
     private static BitmapDrawable overlay(Resources resources, Drawable image) {

@@ -16,6 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/weather_container"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
@@ -79,5 +80,100 @@
             android:layout_gravity="center"
             android:fontFamily="sans-serif"
             android:layout_margin="2dp"/>
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/event_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:visibility="gone"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/event_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textSize="24sp"
+                android:shadowColor="#dd000000"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="9"
+                android:textColor="#ffffff"
+                android:maxLines="1"
+                android:includeFontPadding="false"
+                android:layout_gravity="center"
+                android:fontFamily="sans-serif"
+                android:layout_margin="2dp"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/event_line"
+                android:layout_gravity="bottom|center_horizontal"
+                android:orientation="horizontal">
+
+                <ImageView 
+                android:layout_width="16sp"
+                android:layout_height="16sp"
+                android:layout_gravity="center"
+                android:tint="#ffffff"
+                android:src="@drawable/ic_calendar_today"
+                android:layout_margin="2dp">
+                </ImageView>
+
+                <TextView
+                android:id="@+id/event_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textSize="16sp"
+                android:shadowColor="#dd000000"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="9"
+                android:textColor="#ffffff"
+                android:maxLines="1"
+                android:includeFontPadding="false"
+                android:layout_gravity="center"
+                android:fontFamily="sans-serif"
+                android:layout_margin="2dp"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_margin="2dp">
+
+                    <ImageView
+                        android:id="@+id/event_current_image"
+                        android:layout_width="16sp"
+                        android:layout_height="16sp"
+                        android:layout_gravity="center"
+                        android:scaleType="centerInside" />
+
+                </LinearLayout>
+
+                <TextView
+                android:id="@+id/event_current_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textSize="16sp"
+                android:shadowColor="#dd000000"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="9"
+                android:textColor="#ffffff"
+                android:maxLines="1"
+                android:includeFontPadding="false"
+                android:layout_gravity="center"
+                android:fontFamily="sans-serif"
+                android:layout_margin="2dp"/>
+            </LinearLayout>
         </LinearLayout>
 </FrameLayout>
