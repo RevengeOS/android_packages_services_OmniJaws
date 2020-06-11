@@ -33,8 +33,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PaintFlagsDrawFilter;
-import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.VectorDrawable;
@@ -42,20 +40,17 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
-import android.text.TextPaint;
 import android.text.TextUtils;
-import android.text.format.DateFormat;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.provider.Settings;
 import android.content.ContentResolver;
-import android.content.Context;
+import android.database.Cursor;
+import android.provider.ContactsContract;
 
 import org.omnirom.omnijaws.R;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -168,6 +163,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         boolean calenderEvents = prefs.getBoolean(WeatherAppWidgetConfigure.KEY_CALENDER_EVENTS + "_" + appWidgetId, true);
+        boolean showGreetings = prefs.getBoolean(WeatherAppWidgetConfigure.KEY_SHOW_GREETINGS + "_" + appWidgetId, true);
 
         RemoteViews widget = new RemoteViews(context.getPackageName(), R.layout.weather_appwidget);
 
@@ -208,18 +204,30 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
         Drawable d = weatherClient.getWeatherConditionImage(weatherData.conditionCode);
         BitmapDrawable bd = overlay(context.getResources(), d);
 
+
         if (events.showEvent() && calenderEvents) {
             widget.setViewVisibility(R.id.event_line, View.VISIBLE);
             widget.setViewVisibility(R.id.condition_line, View.GONE);
+            widget.setViewVisibility(R.id.greeting_line, View.GONE);
             widget.setTextViewText(R.id.event_text, events.formatedEvent());
             widget.setTextViewText(R.id.event_duration, events.EventDuration());
             widget.setImageViewBitmap(R.id.event_current_image, bd.getBitmap());
             widget.setTextViewText(R.id.event_current_text, weatherData.temp + weatherData.tempUnits);
         } else {
-            widget.setViewVisibility(R.id.event_line, View.GONE);
-            widget.setViewVisibility(R.id.condition_line, View.VISIBLE);
-            widget.setImageViewBitmap(R.id.current_image, bd.getBitmap());
-            widget.setTextViewText(R.id.current_text, weatherData.temp + weatherData.tempUnits);
+            if ((isEvening() || isMorning()) && showGreetings) {
+                widget.setViewVisibility(R.id.event_line, View.GONE);
+                widget.setViewVisibility(R.id.condition_line, View.GONE);
+                widget.setViewVisibility(R.id.greeting_line, View.VISIBLE);
+                widget.setTextViewText(R.id.greeting_text, getGreeting(context));
+                widget.setImageViewBitmap(R.id.greeting_current_image, bd.getBitmap());
+                widget.setTextViewText(R.id.greeting_current_text, weatherData.temp + weatherData.tempUnits);
+            } else {
+                widget.setViewVisibility(R.id.event_line, View.GONE);
+                widget.setViewVisibility(R.id.condition_line, View.VISIBLE);
+                widget.setViewVisibility(R.id.greeting_line, View.GONE);
+                widget.setImageViewBitmap(R.id.current_image, bd.getBitmap());
+                widget.setTextViewText(R.id.current_text, weatherData.temp + weatherData.tempUnits);
+            }
         }
 
         appWidgetManager.updateAppWidget(appWidgetId, widget);
@@ -230,8 +238,7 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
             image = applyTint(image);
         }
         final Canvas canvas = new Canvas();
-        canvas.setDrawFilter(new PaintFlagsDrawFilter(Paint.ANTI_ALIAS_FLAG,
-                Paint.FILTER_BITMAP_FLAG));
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(Paint.ANTI_ALIAS_FLAG, Paint.FILTER_BITMAP_FLAG));
         final float density = resources.getDisplayMetrics().density;
         final int imageWidth = image.getIntrinsicWidth();
         final int imageHeight = image.getIntrinsicHeight();
@@ -254,20 +261,59 @@ public class WeatherAppWidgetProvider extends AppWidgetProvider {
 
     public static BitmapDrawable shadow(Resources resources, Bitmap b) {
         final Canvas canvas = new Canvas();
-        canvas.setDrawFilter(new PaintFlagsDrawFilter(Paint.ANTI_ALIAS_FLAG,
-                Paint.FILTER_BITMAP_FLAG));
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(Paint.ANTI_ALIAS_FLAG, Paint.FILTER_BITMAP_FLAG));
 
         BlurMaskFilter blurFilter = new BlurMaskFilter(5, BlurMaskFilter.Blur.OUTER);
         Paint shadowPaint = new Paint();
         shadowPaint.setColor(Color.BLACK);
         shadowPaint.setMaskFilter(blurFilter);
 
-        Bitmap bmResult = Bitmap.createBitmap(b.getWidth(), b.getHeight(),
-                Bitmap.Config.ARGB_8888);
+        Bitmap bmResult = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
 
         canvas.setBitmap(bmResult);
         canvas.drawBitmap(b, 0, 0, null);
 
         return new BitmapDrawable(resources, bmResult);
+    }
+
+    public static boolean isEvening() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 20);
+        if (System.currentTimeMillis() > calendar.getTimeInMillis()){
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isMorning(){
+        Calendar startTime = Calendar.getInstance();
+        startTime.set(Calendar.HOUR_OF_DAY,4);
+
+        Calendar endTime = Calendar.getInstance();
+        endTime.set(Calendar.HOUR_OF_DAY, 10);
+
+        if (System.currentTimeMillis() > startTime.getTimeInMillis() && System.currentTimeMillis() < endTime.getTimeInMillis()){
+            return true;
+        }
+        return false;
+    }
+
+    public static String getGreeting(Context context){
+        Cursor cursor = context.getContentResolver().query(ContactsContract.Profile.CONTENT_URI, null, null, null, null);
+
+        if (cursor!=null && cursor.getCount()>0 && cursor.moveToFirst()){
+            String fullName = cursor.getString(cursor.getColumnIndex("display_name"));
+            cursor.close();
+            String[] name = fullName.split("\\s+");
+
+            if (isMorning()){
+                return ("Good morning, " + name [0]);
+            }
+
+            if (isEvening()){
+                return ("Good night, " + name [0]);
+            }
+        }
+        return null;
     }
 }

@@ -38,6 +38,7 @@ import org.omnirom.omnijaws.R;
 public class WeatherAppWidgetConfigure extends PreferenceActivity {
     private int mAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     public static final String KEY_CALENDER_EVENTS = "show_calender_events";
+    public static final String KEY_SHOW_GREETINGS = "show_greeting";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +70,7 @@ public class WeatherAppWidgetConfigure extends PreferenceActivity {
         actionBar.setDisplayHomeAsUpEnabled(true);
 
         initPreference(KEY_CALENDER_EVENTS, prefs.getBoolean(KEY_CALENDER_EVENTS + "_" + mAppWidgetId, true));
+        initPreference(KEY_SHOW_GREETINGS, prefs.getBoolean(KEY_SHOW_GREETINGS + "_" + mAppWidgetId, true));
 
     }
 
@@ -92,6 +94,7 @@ public class WeatherAppWidgetConfigure extends PreferenceActivity {
     public static void clearPrefs(Context context, int id) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         prefs.edit().remove(KEY_CALENDER_EVENTS + "_" + id).commit();
+        prefs.edit().remove(KEY_SHOW_GREETINGS + "_" + id).commit();
     }
 
     public static void remapPrefs(Context context, int oldId, int newId) {
@@ -100,6 +103,10 @@ public class WeatherAppWidgetConfigure extends PreferenceActivity {
         boolean oldBoolean = prefs.getBoolean(KEY_CALENDER_EVENTS + "_" + oldId, false);	
         prefs.edit().putBoolean(KEY_CALENDER_EVENTS + "_" + newId, oldBoolean).commit();	
         prefs.edit().remove(KEY_CALENDER_EVENTS + "_" + oldId).commit();
+
+        oldBoolean = prefs.getBoolean(KEY_SHOW_GREETINGS + "_" + oldId, false);	
+        prefs.edit().putBoolean(KEY_SHOW_GREETINGS + "_" + newId, oldBoolean).commit();	
+        prefs.edit().remove(KEY_SHOW_GREETINGS + "_" + oldId).commit();
 
     }
 
